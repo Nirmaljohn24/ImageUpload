@@ -1,35 +1,29 @@
-const expresss = require('express');
-const app = expresss();
+const express = require('express');
+const app = express();
 const bodyParser = require('body-parser');
 const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
 
-
-
 app.use(cors());
-
-app.use(expresss.static('./public'));
+app.use(express.static('./public'));
 app.use(bodyParser.json());
 
-//Use of multer package
-
+// Multer storage setup
 let storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, './public/images')
+        cb(null, './public/images');
     },
     filename: (req, file, cb) => {
-        cb(null, file.fieldname + '_' + Date.now() + path.extname(file.originalname))
+        cb(null, file.fieldname + '_' + Date.now() + path.extname(file.originalname));
     }
-})
+});
 
-let maxSize = 2 * 1000 * 1000;
+let maxSize = 2 * 1000 * 1000; // 2 MB
 
 let upload = multer({
     storage: storage,
-    limits: {
-        fileSize: maxSize
-    }
+    limits: { fileSize: maxSize }
 });
 
 let uploadHandler = upload.single('file');
@@ -37,23 +31,21 @@ let uploadHandler = upload.single('file');
 app.post('/upload', (req, res) => {
     uploadHandler(req, res, function (err) {
         if (err instanceof multer.MulterError) {
-            if (err.code == 'LIMIT_FILE_SIZE') {
-                res.status(400).json({ message: 'Maximum file size is 2mb' })
+            if (err.code === 'LIMIT_FILE_SIZE') {
+                return res.status(400).json({ message: 'Maximum file size is 2mb' });
             }
-            return;
+        } else if (err) {
+            return res.status(500).json({ message: 'Upload failed' });
         }
 
-        if (!req.file) {
-            res.status(400).json({ message: 'No file!' });
-        } else {
-            res.status(200).json({ message: 'Uploaded to the Server..' })
-        }
-    })
+        res.json({
+            message: 'File uploaded successfully!',
+            filePath: `/images/${req.file.filename}`
+        });
+    });
 });
 
 const PORT = process.env.PORT || 8000;
-
 app.listen(PORT, () => {
-    console.log(`Server is running at Port : ${PORT}`)
+    console.log(`Server running on port ${PORT}`);
 });
-
